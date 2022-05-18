@@ -104,6 +104,7 @@ public class Chip8_CPU extends Thread {
     public Chip8_Screen screen = new Chip8_Screen(WIDTH, HEIGHT);
 
     private boolean drawFlag;                       // bandera de estado de dibujado de pantalla: si es true, significa que debe redibujarse la pantalla.
+    private boolean memoryStatusChanged;            // bandera de cambio de estado del contenido de la memoria
 
     /**
      * Temporizadores (Timers)
@@ -363,7 +364,8 @@ public class Chip8_CPU extends Thread {
         opcode = 0x0000;            // inicializar el registro de codigo de instruccion en uso actualmente
 
         limpiarPantalla();          // inicializar la pantalla
-        drawFlag = false;            // inicializar bandera de estado de dibujado de pantalla
+        drawFlag = false;           // inicializar bandera de estado de dibujado de pantalla
+        memoryStatusChanged = true; // inicializar bandera de cambio de estado de memoria
 
         // inicializar los temporizadores
         delay_Timer = 0;
@@ -424,6 +426,8 @@ public class Chip8_CPU extends Thread {
 
             clockPulses = 0;
         }
+        
+        memoryStatusChanged = false;
     }
 
     /* funcion para emular un ciclo de ejecucion de instruccion en modo paso a paso (single step) */
@@ -476,6 +480,8 @@ public class Chip8_CPU extends Thread {
             clockPulses = 0;
 
         }
+        
+        memoryStatusChanged = false;
     }
 
     public void cargarPrograma(String filename) throws IOException {
@@ -504,6 +510,8 @@ public class Chip8_CPU extends Thread {
         } else {
             Logger.getLogger(Chip8_CPU.class.getName()).log(Level.SEVERE, ("Error: ROM demasiado grande para la memoria chip-8 disponible"));
         }
+        
+        memoryStatusChanged = true;
 
     }
 
@@ -643,6 +651,14 @@ public class Chip8_CPU extends Thread {
         this.singleStepKey = singleStepKey;
     }
 
+    public boolean isMemoryStatusChanged() {
+        return memoryStatusChanged;
+    }
+
+    public void setMemoryStatusChanged(boolean memoryStatusChanged) {
+        this.memoryStatusChanged = memoryStatusChanged;
+    }
+    
     /**
      * Implementacion de fetch, decode y execute
      */
@@ -1311,10 +1327,12 @@ public class Chip8_CPU extends Thread {
         //System.out.println("Valor del registro: " + (registrosV[(opcode & 0x0F00) >> 8]));
         programCounter += 2;
         //System.out.println("Opcode: " + getOpcodeAsString(opcode) + " " + getCPU_StatusAsString());
+        memoryStatusChanged = true;
     }
 
     private void OxFX55() {
-
+        // FX55: Stores V0 to VX in memory starting at address I
+        
         for (int i = 0; i <= ((opcode & 0x0F00) >> 8); ++i) {
             memoria[registroIndice + i] = registrosV[i];
         }
@@ -1324,6 +1342,7 @@ public class Chip8_CPU extends Thread {
         //registroIndice = ((registroIndice + ((opcode & 0x0F00) >> 8) + 1) & 0x0FFF);
         programCounter += 2;
         //System.out.println("Opcode: " + getOpcodeAsString(opcode) + " " + getCPU_StatusAsString());
+        memoryStatusChanged = true;
     }
 
     private void OxFX65() {
@@ -1361,19 +1380,19 @@ public class Chip8_CPU extends Thread {
             
             try {
 
-                //System.out.println(singleStep);
-                //System.out.println(singleStepKey);
+                System.out.println(singleStep);
+                System.out.println(singleStepKey);
                 
                 if (singleStep == false) {
                     chip8EmularCiclo();
                 }
 
-                /*if (singleStep && singleStepKey) {
+                if (singleStep && singleStepKey) {
                     
                     //System.out.println("Ejecutando bucle en modo single step");
                     chip8EmularCicloSingleStep();
 
-                }*/
+                }
             } catch (LineUnavailableException ex) {
                 Logger.getLogger(Chip8_CPU.class.getName()).log(Level.SEVERE, null, ex);
 

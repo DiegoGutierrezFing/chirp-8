@@ -269,7 +269,8 @@ public class Chirp8 extends JFrame {
                         statusDialog.setVFValue(String.format("%02X", cpu.getRegistrosV()[15]));
 
                         // Actualizar valores del visor de contenido de memoria
-                        statusDialog.setMemoryValues(cpu.getMemoria());
+                        if (cpu.isMemoryStatusChanged())
+                            statusDialog.setMemoryValues(cpu.getMemoria());
 
                     }
                 }
